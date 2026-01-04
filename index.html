@@ -97,6 +97,8 @@
         }
         .btn-prev { background: none; border: none; color: #aaa; cursor: pointer; }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -142,7 +144,21 @@
 
 <script>
     /* --- CONFIG & DB --- */
-    const API_KEY = 'AIzaSyBgOvMcnQmeqVGa0VOt9FZsxv6OP75QmKM'; // 🔑 여기에 Gemini API 키 입력
+        // 1. 여기에 Firebase 설정을 넣으세요
+    const firebaseConfig = {
+        apiKey: "AIzaSyBqzKxNTMPOURq8M5zmYlBogm1TsJmkFYw",
+  authDomain: "bridge-addd2.firebaseapp.com",
+  projectId: "bridge-addd2",
+  storageBucket: "bridge-addd2.firebasestorage.app",
+  messagingSenderId: "219734716082",
+  appId: "1:219734716082:web:0886fdeed49f3bbf3ae3ab"
+    };
+
+    // 2. Firebase 및 Firestore 초기화
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+      const API_KEY = 'AIzaSyBgOvMcnQmeqVGa0VOt9FZsxv6OP75QmKM'; // 🔑 여기에 Gemini API 키 입력
     const slangDB = {
         "10s": [
             { "word": "알잘딱깔센", "mean": "알아서 잘 딱 깔끔하고 센스 있게", "example": "이번 숙제는 알잘딱깔센 하게!" },
