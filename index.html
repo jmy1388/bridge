@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MZ-Slang AI Dictionary</title>
+    <style>
+        :root {
+            --primary-dark: #003060;
+            --primary-main: #055C9D;
+            --primary-light: #0E86D4;
+            --primary-accent: #68BBE3;
+            --bg-soft: #F0F8FF;
+        }
+
+        body {
+            margin: 0; overflow: hidden;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--bg-soft);
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh;
+        }
+
+        /* 배경 캔버스 */
+        #bgCanvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 1;
+        }
+
+        /* 메인 컨테이너 */
+        .app-container {
+            width: 360px; height: 680px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            border-radius: 35px;
+            box-shadow: 0 25px 50px rgba(0,48,96,0.2);
+            display: flex; flex-direction: column;
+            border: 6px solid var(--primary-dark);
+            position: relative; z-index: 10;
+        }
+
+        header { padding: 25px 20px 10px; text-align: center; }
+        header h1 { font-size: 1.5rem; color: var(--primary-dark); margin: 0 0 15px 0; }
+
+        /* 세대 탭 */
+        .tabs {
+            display: flex; justify-content: space-around;
+            background: rgba(5, 92, 157, 0.1); border-radius: 15px; padding: 5px;
+            margin-bottom: 15px;
+        }
+        .tab {
+            font-size: 0.8rem; padding: 8px 15px; border-radius: 10px;
+            cursor: pointer; color: var(--primary-main); font-weight: bold; transition: 0.3s;
+        }
+        .tab.active { background: var(--primary-main); color: white; }
+
+        /* 검색 바 */
+        .search-area { padding: 0 20px 15px; }
+        .search-bar {
+            background: white; border: 2px solid var(--primary-accent);
+            border-radius: 12px; padding: 10px; display: flex; gap: 5px;
+        }
+        input { border: none; outline: none; width: 100%; font-size: 0.9rem; }
+
+        /* 카드 영역 */
+        .card-stage { flex: 1; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        .card {
+            width: 280px; height: 360px; position: relative;
+            transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .card.is-flipped { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; border-radius: 25px;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; padding: 30px; box-sizing: border-box; text-align: center;
+        }
+        .card-front { background: var(--primary-main); color: white; box-shadow: inset 0 0 50px rgba(0,0,0,0.1); }
+        .card-front .word { font-size: 2.5rem; font-weight: 900; word-break: keep-all; }
+        .card-back { background: var(--primary-accent); color: var(--primary-dark); transform: rotateY(180deg); }
+        .card-back .mean { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; }
+        .card-back .example { font-size: 0.9rem; background: rgba(255,255,255,0.5); padding: 12px; border-radius: 12px; line-height: 1.4; }
+
+        /* 로딩 상태 */
+        #loading { font-size: 0.75rem; color: var(--primary-light); text-align: center; display: none; margin-bottom: 5px; font-weight: bold; }
+
+        /* 컨트롤러 */
+        .controls {
+            padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            background: white; border-radius: 0 0 30px 30px;
+        }
+        .btn {
+            background: var(--primary-light); color: white; border: none;
+            padding: 12px 25px; border-radius: 50px; font-weight: bold; cursor: pointer;
+        }
+        .btn-prev { background: none; border: none; color: #aaa; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="app-container">
+    <header>
+        <h1>AI Slang Dictionary</h1>
+        <div class="tabs">
+            <div class="tab active" onclick="changeAge('10s')">10대</div>
+            <div class="tab" onclick="changeAge('20s')">20대</div>
+            <div class="tab" onclick="changeAge('30s')">30대</div>
+            <div class="tab" onclick="changeAge('4050s')">4050</div>
+        </div>
+    </header>
+
+    <div class="search-area">
+        <div id="loading">Gemini가 신조어 해독 중...</div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="궁금한 단어 입력 + Enter">
+        </div>
+    </div>
+
+    <div class="card-stage">
+        <div class="card" id="mainCard" onclick="this.classList.toggle('is-flipped')">
+            <div class="card-face card-front">
+                <div class="word" id="wordDisplay">분조카</div>
+                <div style="margin-top:20px; font-size:0.7rem; opacity:0.6;">탭해서 해독하기</div>
+            </div>
+            <div class="card-face card-back">
+                <div class="mean" id="meanDisplay">분위기 좋은 카페</div>
+                <div class="example" id="exDisplay">"오늘 홍대 분조카 가자!"</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-prev" onclick="prevWord()">이전</button>
+        <span id="pageInfo" style="font-size: 0.8rem; color:#ccc;">1/5</span>
+        <button class="btn" onclick="nextWord()">다음</button>
+    </div>
+</div>
+
+<script>
+    /* --- CONFIG & DB --- */
+    const API_KEY = 'AIzaSyBgOvMcnQmeqVGa0VOt9FZsxv6OP75QmKM'; // 🔑 여기에 Gemini API 키 입력
+    const slangDB = {
+        "10s": [
+            { "word": "알잘딱깔센", "mean": "알아서 잘 딱 깔끔하고 센스 있게", "example": "이번 숙제는 알잘딱깔센 하게!" },
+            { "word": "중꺾마", "mean": "중요한 건 꺾이지 않는 마음", "example": "시험 망해도 중꺾마 정신!" }
+        ],
+        "20s": [{ "word": "갓생", "mean": "부지런하고 생산적인 삶", "example": "내일부터 6시 기상 갓생 시작." }],
+        "30s": [{ "word": "영끌", "mean": "영혼까지 끌어모으다", "example": "영끌해서 내 집 마련했어." }],
+        "4050s": [{ "word": "라떼는", "mean": "나 때는 말이야 (꼰대 풍자)", "example": "부장님이 또 라떼는을 시작하셨다." }]
+    };
+
+    let currentAge = '10s';
+    let currentIndex = 0;
+
+    /* --- BACKGROUND MOTION (Particle) --- */
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    const mouse = { x: null, y: null };
+    const pColors = ['#003060', '#055C9D', '#0E86D4', '#68BBE3', '#FF2D55', '#FFD700'];
+
+    window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
+    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
+
+    class Particle {
+        constructor() { this.reset(); }
+        reset() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = 2;
+            this.color = pColors[Math.floor(Math.random() * pColors.length)];
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.speedY = (Math.random() - 0.5) * 1.5;
+            this.angle = Math.random() * 360;
+            this.spin = (Math.random() - 0.5) * 5;
+        }
+        update() {
+            this.x += this.speedX; this.y += this.speedY; this.angle += this.spin;
+            if (mouse.x) {
+                let dx = mouse.x - this.x; let dy = mouse.y - this.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 120) { this.x += dx*0.02; this.y += dy*0.02; }
+            }
+            if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+        }
+        draw() {
+            ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle * Math.PI / 180);
+            ctx.fillStyle = this.color; ctx.fillRect(-1, -1, 2, 2); ctx.restore();
+        }
+    }
+
+    function initParticles() {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        particles = Array.from({length: 150}, () => new Particle());
+    }
+
+    function animate() {
+        ctx.fillStyle = 'rgba(240, 248, 255, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animate);
+    }
+    initParticles(); animate();
+
+    /* --- CORE FUNCTIONALITY --- */
+    function changeAge(age) {
+        currentAge = age; currentIndex = 0;
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.innerText.includes(age.substring(0,2))) t.classList.add('active');
+        });
+        updateUI();
+    }
+
+    function updateUI() {
+        const card = document.getElementById('mainCard');
+        card.classList.remove('is-flipped');
+        const data = slangDB[currentAge];
+        setTimeout(() => {
+            document.getElementById('wordDisplay').innerText = data[currentIndex].word;
+            document.getElementById('meanDisplay').innerText = data[currentIndex].mean;
+            document.getElementById('exDisplay').innerText = data[currentIndex].example;
+            document.getElementById('pageInfo').innerText = `${currentIndex + 1} / ${data.length}`;
+        }, 200);
+    }
+
+    function nextWord() { currentIndex = (currentIndex + 1) % slangDB[currentAge].length; updateUI(); }
+    function prevWord() { currentIndex = (currentIndex - 1 + slangDB[currentAge].length) % slangDB[currentAge].length; updateUI(); }
+
+    /* --- GEMINI API INTEGRATION --- */
+    async function searchSlang(word) {
+        if (!word) return;
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
+        
+        const prompt = `신조어 '${word}'의 뜻과 예시를 10대 말투로 알려줘. { "mean": "...", "example": "..." } 형식의 JSON으로만 답해.`;
+        
+        try {
+            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const resData = await resp.json();
+            const cleanJson = resData.candidates[0].content.parts[0].text.replace(/```json|```/g, '');
+            const result = JSON.parse(cleanJson);
+            
+            // 검색 결과를 DB에 임시 추가 후 표시
+            slangDB[currentAge].unshift({ word, mean: result.mean, example: result.example });
+            currentIndex = 0;
+            updateUI();
+        } catch (e) {
+            alert("API 호출 오류! 키를 확인하세요.");
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    document.getElementById('searchInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') { searchSlang(e.target.value); e.target.value = ''; }
+    });
+
+    updateUI();
+</script>
+</body>
+</html>
