@@ -39,23 +39,12 @@
             position: relative; z-index: 10;
         }
 
-        header { padding: 25px 20px 10px; text-align: center; }
-        header h1 { font-size: 1.5rem; color: var(--primary-dark); margin: 0 0 15px 0; }
-
-        /* 세대 탭 */
-        .tabs {
-            display: flex; justify-content: space-around;
-            background: rgba(5, 92, 157, 0.1); border-radius: 15px; padding: 5px;
-            margin-bottom: 15px;
-        }
-        .tab {
-            font-size: 0.8rem; padding: 8px 15px; border-radius: 10px;
-            cursor: pointer; color: var(--primary-main); font-weight: bold; transition: 0.3s;
-        }
-        .tab.active { background: var(--primary-main); color: white; }
+        header { padding: 30px 20px 15px; text-align: center; }
+        header h1 { font-size: 1.6rem; color: var(--primary-dark); margin: 0; }
+        header p { font-size: 0.9rem; color: var(--primary-main); margin-top: 5px; opacity: 0.8; }
 
         /* 검색 바 */
-        .search-area { padding: 0 20px 15px; }
+        .search-area { padding: 10px 20px 15px; }
         .search-bar {
             background: white; border: 2px solid var(--primary-accent);
             border-radius: 12px; padding: 10px; display: flex; gap: 5px;
@@ -107,16 +96,11 @@
 <div class="app-container">
     <header>
         <h1>AI Slang Dictionary</h1>
-        <div class="tabs">
-            <div class="tab active" onclick="changeAge('10s')">10대</div>
-            <div class="tab" onclick="changeAge('20s')">20대</div>
-            <div class="tab" onclick="changeAge('30s')">30대</div>
-            <div class="tab" onclick="changeAge('4050s')">4050</div>
-        </div>
+        <p>세대 통합 신조어 사전</p>
     </header>
 
     <div class="search-area">
-        <div id="loading">Gemini가 신조어 해독 중...</div>
+        <div id="loading">데이터베이스에서 찾는 중...</div>
         <div class="search-bar">
             <input type="text" id="searchInput" placeholder="궁금한 단어 입력 + Enter">
         </div>
@@ -125,54 +109,50 @@
     <div class="card-stage">
         <div class="card" id="mainCard" onclick="this.classList.toggle('is-flipped')">
             <div class="card-face card-front">
-                <div class="word" id="wordDisplay">분조카</div>
+                <div class="word" id="wordDisplay">-</div>
                 <div style="margin-top:20px; font-size:0.7rem; opacity:0.6;">탭해서 해독하기</div>
             </div>
             <div class="card-face card-back">
-                <div class="mean" id="meanDisplay">분위기 좋은 카페</div>
-                <div class="example" id="exDisplay">"오늘 홍대 분조카 가자!"</div>
+                <div class="mean" id="meanDisplay">-</div>
+                <div class="example" id="exDisplay">-</div>
             </div>
         </div>
     </div>
 
     <div class="controls">
         <button class="btn-prev" onclick="prevWord()">이전</button>
-        <span id="pageInfo" style="font-size: 0.8rem; color:#ccc;">1/5</span>
+        <span id="pageInfo" style="font-size: 0.8rem; color:#ccc;">0/0</span>
         <button class="btn" onclick="nextWord()">다음</button>
     </div>
 </div>
 
 <script>
     /* --- CONFIG & DB --- */
-        // 1. 여기에 Firebase 설정을 넣으세요
     const firebaseConfig = {
         apiKey: "AIzaSyBqzKxNTMPOURq8M5zmYlBogm1TsJmkFYw",
-  authDomain: "bridge-addd2.firebaseapp.com",
-  projectId: "bridge-addd2",
-  storageBucket: "bridge-addd2.firebasestorage.app",
-  messagingSenderId: "219734716082",
-  appId: "1:219734716082:web:0886fdeed49f3bbf3ae3ab"
+        authDomain: "bridge-addd2.firebaseapp.com",
+        projectId: "bridge-addd2",
+        storageBucket: "bridge-addd2.firebasestorage.app",
+        messagingSenderId: "219734716082",
+        appId: "1:219734716082:web:0886fdeed49f3bbf3ae3ab"
     };
 
-    // 2. Firebase 및 Firestore 초기화
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-      const API_KEY = 'AIzaSyBgOvMcnQmeqVGa0VOt9FZsxv6OP75QmKM'; // 🔑 여기에 Gemini API 키 입력
-    const slangDB = {
-        "10s": [
-            { "word": "알잘딱깔센", "mean": "알아서 잘 딱 깔끔하고 센스 있게", "example": "이번 숙제는 알잘딱깔센 하게!" },
-            { "word": "중꺾마", "mean": "중요한 건 꺾이지 않는 마음", "example": "시험 망해도 중꺾마 정신!" }
-        ],
-        "20s": [{ "word": "갓생", "mean": "부지런하고 생산적인 삶", "example": "내일부터 6시 기상 갓생 시작." }],
-        "30s": [{ "word": "영끌", "mean": "영혼까지 끌어모으다", "example": "영끌해서 내 집 마련했어." }],
-        "4050s": [{ "word": "라떼는", "mean": "나 때는 말이야 (꼰대 풍자)", "example": "부장님이 또 라떼는을 시작하셨다." }]
-    };
+    // 데이터를 하나의 배열로 통합
+    const slangList = [
+        { "word": "알잘딱깔센", "mean": "알아서 잘 딱 깔끔하고 센스 있게", "example": "이번 숙제는 알잘딱깔센 하게!" },
+        { "word": "중꺾마", "mean": "중요한 건 꺾이지 않는 마음", "example": "시험 망해도 중꺾마 정신!" },
+        { "word": "갓생", "mean": "부지런하고 생산적인 삶", "example": "내일부터 6시 기상 갓생 시작." },
+        { "word": "영끌", "mean": "영혼까지 끌어모으다", "example": "영끌해서 내 집 마련했어." },
+        { "word": "라떼는", "mean": "나 때는 말이야 (꼰대 풍자)", "example": "부장님이 또 라떼는을 시작하셨다." },
+        { "word": "분조카", "mean": "분위기 좋은 카페", "example": "오늘 홍대 분조카 가자!" }
+    ];
 
-    let currentAge = '10s';
     let currentIndex = 0;
 
-    /* --- BACKGROUND MOTION (Particle) --- */
+    /* --- BACKGROUND MOTION --- */
     const canvas = document.getElementById('bgCanvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
@@ -224,62 +204,52 @@
     initParticles(); animate();
 
     /* --- CORE FUNCTIONALITY --- */
-    function changeAge(age) {
-        currentAge = age; currentIndex = 0;
-        document.querySelectorAll('.tab').forEach(t => {
-            t.classList.remove('active');
-            if (t.innerText.includes(age.substring(0,2))) t.classList.add('active');
-        });
-        updateUI();
-    }
-
     function updateUI() {
         const card = document.getElementById('mainCard');
         card.classList.remove('is-flipped');
-        const data = slangDB[currentAge];
+        
+        const data = slangList[currentIndex];
         setTimeout(() => {
-            document.getElementById('wordDisplay').innerText = data[currentIndex].word;
-            document.getElementById('meanDisplay').innerText = data[currentIndex].mean;
-            document.getElementById('exDisplay').innerText = data[currentIndex].example;
-            document.getElementById('pageInfo').innerText = `${currentIndex + 1} / ${data.length}`;
+            document.getElementById('wordDisplay').innerText = data.word;
+            document.getElementById('meanDisplay').innerText = data.mean;
+            document.getElementById('exDisplay').innerText = data.example;
+            document.getElementById('pageInfo').innerText = `${currentIndex + 1} / ${slangList.length}`;
         }, 200);
     }
 
-    function nextWord() { currentIndex = (currentIndex + 1) % slangDB[currentAge].length; updateUI(); }
-    function prevWord() { currentIndex = (currentIndex - 1 + slangDB[currentAge].length) % slangDB[currentAge].length; updateUI(); }
-/* --- FIRESTORE 데이터베이스 검색 (Gemini 호출 제거됨) --- */
+    function nextWord() { currentIndex = (currentIndex + 1) % slangList.length; updateUI(); }
+    function prevWord() { currentIndex = (currentIndex - 1 + slangList.length) % slangList.length; updateUI(); }
+
     async function searchSlang(word) {
         if (!word) return;
         const loading = document.getElementById('loading');
-        
-        // 로딩 문구 변경 (Gemini 관련 내용 삭제)
-        loading.innerText = "데이터베이스에서 찾는 중...";
         loading.style.display = 'block';
 
         try {
-            // 1. Firestore 'slangs' 컬렉션에서 단어 검색
+            // 1. Firestore 검색
             const snapshot = await db.collection('slangs')
                                    .where('word', '==', word)
                                    .get();
 
             if (!snapshot.empty) {
-                // 2. DB에 데이터가 있는 경우
                 const data = snapshot.docs[0].data();
                 displayResult(word, data.mean, data.example);
-                console.log("DB에서 단어를 찾았습니다.");
             } else {
-                // 3. DB에 데이터가 없는 경우
-                alert(`'${word}'은(는) 아직 등록되지 않은 단어입니다. 제보해 주세요!`);
+                // 2. 로컬 리스트에서도 확인
+                const localMatch = slangList.find(item => item.word === word);
+                if(localMatch) {
+                    displayResult(localMatch.word, localMatch.mean, localMatch.example);
+                } else {
+                    alert(`'${word}'은(는) 아직 등록되지 않은 단어입니다.`);
+                }
             }
         } catch (error) {
             console.error("데이터 조회 중 오류 발생:", error);
-            alert("서버 연결에 실패했습니다.");
         } finally {
             loading.style.display = 'none';
         }
     }
 
-    // 결과 화면 표시 함수
     function displayResult(word, mean, example) {
         const card = document.getElementById('mainCard');
         card.classList.remove('is-flipped');
@@ -294,6 +264,7 @@
         if (e.key === 'Enter') { searchSlang(e.target.value); e.target.value = ''; }
     });
 
+    // 초기 실행
     updateUI();
 </script>
 </body>
