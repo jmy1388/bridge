@@ -77,9 +77,6 @@
             color: #333;
             word-break: keep-all;
         }
-
-        /* 주석 처리된 구역 스타일 (필요 시 유지) */
-        /* .example-box { ... } */
     </style>
 </head>
 <body>
@@ -97,11 +94,10 @@
     <div class="card" id="mainCard">
         <div id="wordDisplay">준비 완료!</div>
         <div id="meanDisplay">검색창에 궁금한 단어를 입력해 보세요.</div>
-        
-        </div>
+    </div>
 
     <script>
-        // Firebase 설정 (사용자님의 키 정보로 유지하세요)
+        // Firebase 설정 (기존 사용자님의 키 정보를 입력하세요)
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -116,11 +112,9 @@
         }
         const db = firebase.firestore();
 
-        // 검색 함수
         async function searchSlang(word) {
             if (!word.trim()) return;
 
-            // [수정] 로딩 표시 로직 제거 (화면 흔들림 원인 차단)
             try {
                 // 컬렉션 이름을 'slangs'로 지정
                 const snapshot = await db.collection('slangs')
@@ -129,34 +123,21 @@
 
                 if (!snapshot.empty) {
                     const data = snapshot.docs[0].data();
-                    // [수정] 뜻만 표시하고 예시는 빈 값 전달
                     displayResult(data.word, data.mean);
                 } else {
+                    // 데이터가 없을 때만 알림
                     alert(`'${word}'은(는) 아직 등록되지 않은 단어입니다.`);
                 }
             } catch (error) {
+                // [수정] "데이터를 가져오는 중..." 알림창 삭제하여 조용히 처리
                 console.error("데이터 조회 오류:", error);
-                alert("데이터를 가져오는 중에 문제가 발생했습니다.");
             }
         }
 
-        // 결과 화면 표시 함수
         function displayResult(word, mean) {
-            const wordDisplay = document.getElementById('wordDisplay');
-            const meanDisplay = document.getElementById('meanDisplay');
-            
-            // 부드러운 전환을 위한 처리
-            wordDisplay.style.opacity = 0;
-            meanDisplay.style.opacity = 0;
-
-            setTimeout(() => {
-                wordDisplay.innerText = word;
-                meanDisplay.innerText = mean;
-                wordDisplay.style.opacity = 1;
-                meanDisplay.style.opacity = 1;
-                
-                // [수정] 예시 문장 요소가 주석 처리되었으므로 업데이트하지 않음
-            }, 200);
+            // [수정] 지연 시간(setTimeout)과 opacity 제거하여 즉시 출력 (화면 흔들림 방지)
+            document.getElementById('wordDisplay').innerText = word;
+            document.getElementById('meanDisplay').innerText = mean;
         }
     </script>
 </body>
