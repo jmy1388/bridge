@@ -221,44 +221,55 @@
     function prevWord() { currentIndex = (currentIndex - 1 + slangList.length) % slangList.length; updateUI(); }
 
     async function searchSlang(word) {
-        if (!word) return;
-        const loading = document.getElementById('loading');
-        loading.style.display = 'block';
+    if (!word.trim()) return;
 
-        try {
-            // 1. Firestore 검색
-            const snapshot = await db.collection('slangs')
-                                   .where('word', '==', word)
-                                   .get();
+    const loading = document.getElementById('loading');
+    if (loading) loading.style.display = 'flex';
 
-            if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
-                displayResult(word, data.mean, data.example);
+    try {
+        // 컬렉션 이름을 현재 사용 중인 'slangs'로 유지 (보안규칙과 일치해야 함)
+        const snapshot = await db.collection('slangs')
+                               .where('word', '==', word.trim())
+                               .get();
+
+        if (!snapshot.empty) {
+            const data = snapshot.docs[0].data();
+            // 뜻(mean)만 전달하고 예시는 빈 값으로 전달
+            displayResult(data.word, data.mean, ""); 
+        } else {
+            // 로컬 리스트에서도 확인
+            const localMatch = slangList.find(item => item.word === word.trim());
+            if(localMatch) {
+                displayResult(localMatch.word, localMatch.mean, "");
             } else {
-                // 2. 로컬 리스트에서도 확인
-                const localMatch = slangList.find(item => item.word === word);
-                if(localMatch) {
-                    displayResult(localMatch.word, localMatch.mean, localMatch.example);
-                } else {
-                    alert(`'${word}'은(는) 아직 등록되지 않은 단어입니다.`);
-                }
+                alert(`'${word}'은(는) 아직 등록되지 않은 단어입니다.`);
             }
-        } catch (error) {
-            console.error("데이터 조회 중 오류 발생:", error);
-        } finally {
-            loading.style.display = 'none';
         }
+    } catch (error) {
+        console.error("데이터 조회 중 오류 발생:", error);
+    } finally {
+        if (loading) loading.style.display = 'none';
     }
+}
 
-    function displayResult(word, mean, example) {
-        const card = document.getElementById('mainCard');
-        card.classList.remove('is-flipped');
-        setTimeout(() => {
-            document.getElementById('wordDisplay').innerText = word;
-            document.getElementById('meanDisplay').innerText = mean;
-            document.getElementById('exDisplay').innerText = example;
-        }, 200);
-    }
+// 화면에 결과를 표시하는 함수 수정
+function displayResult(word, mean, example) {
+    const card = document.getElementById('mainCard');
+    card.classList.remove('is-flipped');
+    
+    setTimeout(() => {
+        document.getElementById('wordDisplay').innerText = word;
+        document.getElementById('meanDisplay').innerText = mean;
+        
+        // 예시 문장 영역이 HTML에 남아있다면 내용을 비우거나 숨깁니다.
+        const exDisplay = document.getElementById('exDisplay');
+        if (exDisplay) {
+            exDisplay.innerText = ""; // 텍스트 비움
+            // 만약 부모 요소(예: '예시' 라벨 등)까지 숨기고 싶다면 아래 주석 해제
+            // exDisplay.parentElement.style.display = 'none'; 
+        }
+    }, 200);
+}
     
     document.getElementById('searchInput').addEventListener('keypress', e => {
         if (e.key === 'Enter') { searchSlang(e.target.value); e.target.value = ''; }
